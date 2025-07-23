@@ -2,10 +2,10 @@
 
 Integrantes del Equipo
 -
--
--
--
--
+- CEDEÑO SABOGAL, SANTIAGO            scedeno@unal.edu.co
+- BAYONA MARIÑO, ERICK SANTIAGO       ebayonam@unal.edu.co
+- LADINO NARVAEZ, JOSE MANUEL         jladinon@unal.edu.co
+- BOHADA LOPEZ, SANTIAGO              sbohada@unal.edu.co
 
 Instrucciones para Ejecutar el Programa
 
@@ -18,7 +18,7 @@ Instrucciones para Ejecutar el Programa
 
 Enlace al Video
 
-*******Aquí puedes ver un video que explica brevemente la solución y muestra el programa en funcionamiento con algunos (o todos) los casos de prueba: 
+https://drive.google.com/file/d/1zYmjHJQJn3vWBB1meJA-xVxzGt0rBBmy/view?usp=sharing
 
 Explicación del Código
 
