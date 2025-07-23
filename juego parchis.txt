@@ -1,0 +1,169 @@
+import pygame
+import random
+import sys
+import time
+
+# --- Configuración de pygame ---
+pygame.init()
+WIDTH, HEIGHT = 1000, 700  # Aumentado el tamaño de la ventana
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Parqués 2D")
+font = pygame.font.SysFont(None, 24)
+
+# --- Variables del juego ---
+jugadores = ["Amarillo", "Azul", "Rojo", "Verde"]
+fichas_jugador = 1  # Solo una ficha por jugador
+casillas = 68
+
+salida_casillas = {
+    'Amarillo': 1,
+    'Azul': 18,
+    'Rojo': 35,
+    'Verde': 52
+}
+entrada_casillas = {
+    'Amarillo': [f"{i}Am" for i in range(1, 6)],  # Solo 5 casillas para ganar
+    'Azul': [f"{i}Az" for i in range(1, 6)],
+    'Rojo': [f"{i}Ro" for i in range(1, 6)],
+    'Verde': [f"{i}Ve" for i in range(1, 6)]
+}
+entrada_posiciones = {
+    'Amarillo': 64,
+    'Azul': 13,
+    'Rojo': 30,
+    'Verde': 47
+}
+seguros = {
+    'Amarillo': 8,
+    'Azul': 25,
+    'Rojo': 42,
+    'Verde': 59
+}
+fichas = {jugador: [salida_casillas[jugador]] * fichas_jugador for jugador in jugadores}
+fichas_protegidas = {jugador: [False] * fichas_jugador for jugador in jugadores}
+turno = 0
+
+COLOR_MAP = {
+    'Amarillo': (255, 255, 0),
+    'Azul': (0, 0, 255),
+    'Rojo': (255, 0, 0),
+    'Verde': (0, 255, 0)
+}
+
+eliminaciones = {jugador: 0 for jugador in jugadores}  # Contador de eliminaciones
+
+def tirar_dados():
+    return random.randint(1, 6), random.randint(1, 6)
+
+def draw_board():
+    screen.fill((200, 200, 200))
+    # Dibuja casillas (simplificado)
+    for i in range(68):
+        x = 150 + (i % 17) * 40
+        y = 120 + (i // 17) * 120
+        pygame.draw.rect(screen, (180, 180, 180), (x, y, 38, 38), 2)
+    # Dibuja zonas de entrada
+    for idx, color in enumerate(jugadores):
+        pygame.draw.rect(screen, COLOR_MAP[color], (80 + idx*220, 600, 80, 80), 0)
+
+def draw_fichas():
+    for jugador in jugadores:
+        for idx, pos in enumerate(fichas[jugador]):
+            if isinstance(pos, int):
+                x = 150 + ((pos-1) % 17) * 40 + 19
+                y = 120 + ((pos-1) // 17) * 120 + 19
+            else:
+                # Casillas de entrada
+                num = int(pos[:-2])
+                base_x = 80 + jugadores.index(jugador)*220
+                base_y = 600
+                x = base_x + (num-1)*12 + 40
+                y = base_y + 40
+            # Dibuja contorno negro
+            pygame.draw.circle(screen, (0, 0, 0), (x, y), 18, 3)
+            # Dibuja la bola de color
+            pygame.draw.circle(screen, COLOR_MAP[jugador], (x, y), 18)
+            # Número: negro para Amarillo, blanco para los demás
+            color_num = (0,0,0) if jugador == "Amarillo" else (255,255,255)
+            txt = font.render(str(idx+1), True, color_num)
+            screen.blit(txt, (x-8, y-12))
+
+def mover_ficha(jugador, ficha_idx, pasos, dado1, dado2):
+    posicion = fichas[jugador][ficha_idx]
+    if isinstance(posicion, str) and posicion.endswith(jugador[:2]):
+        num = int(posicion[:-2])
+        nueva_posicion = num + pasos
+        if nueva_posicion <= 5:  # Solo 5 casillas para ganar
+            fichas[jugador][ficha_idx] = f"{nueva_posicion}{jugador[:2]}"
+        else:
+            pass  # No puede mover más allá de la entrada
+    else:
+        nueva_posicion = (posicion + pasos - 1) % casillas + 1
+        if nueva_posicion == entrada_posiciones[jugador]:
+            fichas[jugador][ficha_idx] = entrada_casillas[jugador][0]
+        else:
+            fichas[jugador][ficha_idx] = nueva_posicion
+
+        # --- Verifica si hay otra ficha en la misma casilla ---
+        for otro_jugador in jugadores:
+            if otro_jugador != jugador:
+                for idx_otro, pos_otro in enumerate(fichas[otro_jugador]):
+                    # Solo compara si ambos están en el tablero principal (no en entrada)
+                    if isinstance(pos_otro, int) and pos_otro == fichas[jugador][ficha_idx]:
+                        # El jugador que estaba antes vuelve a su salida
+                        fichas[otro_jugador][idx_otro] = salida_casillas[otro_jugador]
+                        eliminaciones[jugador] += 1  # Suma eliminación
+                        print(f"{otro_jugador} ficha {idx_otro+1} fue regresada a la salida por {jugador}.")
+
+def mostrar_posiciones():
+    print("\nPosiciones de fichas:")
+    for jugador in jugadores:
+        print(f"{jugador}: {fichas[jugador]}")
+    print()
+
+def draw_eliminaciones():
+    y = 10
+    for jugador in jugadores:
+        txt = font.render(f"{jugador}: {eliminaciones[jugador]} eliminaciones", True, COLOR_MAP[jugador])
+        screen.blit(txt, (WIDTH - 270, y))
+        y += 30
+
+def jugar():
+    global turno
+    fin_juego = False
+    clock = pygame.time.Clock()
+    ficha_seleccionada = 0  # Siempre mueve la primera ficha
+
+    while not fin_juego:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            # Detecta barra espaciadora
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                pasos = random.randint(2, 12)
+                print(f"{jugadores[turno]} mueve ficha {ficha_seleccionada + 1} {pasos} pasos (aleatorio por botón)")
+                mover_ficha(jugadores[turno], ficha_seleccionada, pasos, 0, 0)
+                # Verifica si el jugador ha ganado (todas sus fichas en la última casilla de entrada)
+                ultima_casilla = entrada_casillas[jugadores[turno]][-1]
+                if all(pos == ultima_casilla for pos in fichas[jugadores[turno]]):
+                    print(f"{jugadores[turno]} ganó el juego!")
+                    fin_juego = True
+                    time.sleep(2)
+                    break
+                turno = (turno + 1) % len(jugadores)
+
+        jugador = jugadores[turno]
+        draw_board()
+        draw_fichas()
+        draw_eliminaciones()
+        txt = font.render(f"Turno de {jugador} (Presiona ESPACIO para mover)", True, (0,0,0))
+        screen.blit(txt, (10, 10))
+        pygame.display.flip()
+        clock.tick(30)
+
+def inicio():
+    print("Bienvenido a Parqués 2D")
+    jugar()
+
+inicio()
